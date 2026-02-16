@@ -1,0 +1,125 @@
+name: Full Docker CI/CD
+
+on:
+  push:
+    branches: [ "main" ]
+
+jobs:
+  docker-build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      # --------------------------
+      # Setup Java
+      # --------------------------
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+
+      # --------------------------
+      # Build Backend Services
+      # --------------------------
+      - name: Build discoveryserver
+        run: |
+          cd discoveryserver
+          mvn clean package -DskipTests
+
+      - name: Build apigateway
+        run: |
+          cd apigateway
+          mvn clean package -DskipTests
+
+      - name: Build userservice
+        run: |
+          cd userservice
+          mvn clean package -DskipTests
+
+      - name: Build auth-service
+        run: |
+          cd auth-service
+          mvn clean package -DskipTests
+
+      - name: Build productservice
+        run: |
+          cd productservice
+          mvn clean package -DskipTests
+
+      - name: Build cartservice
+        run: |
+          cd cartservice
+          mvn clean package -DskipTests
+
+      - name: Build orderservice
+        run: |
+          cd orderservice
+          mvn clean package -DskipTests
+
+      - name: Build paymentservice
+        run: |
+          cd paymentservice
+          mvn clean package -DskipTests
+
+      # --------------------------
+      # Docker Login
+      # --------------------------
+      - name: Login to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
+
+      # --------------------------
+      # Build & Push Backend Images
+      # --------------------------
+      - name: Build & Push discoveryserver
+        run: |
+          docker build -t ${{ secrets.DOCKER_USERNAME }}/discoveryserver:latest ./discoveryserver
+          docker push ${{ secrets.DOCKER_USERNAME }}/discoveryserver:latest
+
+      - name: Build & Push apigateway
+        run: |
+          docker build -t ${{ secrets.DOCKER_USERNAME }}/apigateway:latest ./apigateway
+          docker push ${{ secrets.DOCKER_USERNAME }}/apigateway:latest
+
+      - name: Build & Push userservice
+        run: |
+          docker build -t ${{ secrets.DOCKER_USERNAME }}/userservice:latest ./userservice
+          docker push ${{ secrets.DOCKER_USERNAME }}/userservice:latest
+
+      - name: Build & Push auth-service
+        run: |
+          docker build -t ${{ secrets.DOCKER_USERNAME }}/auth-service:latest ./auth-service
+          docker push ${{ secrets.DOCKER_USERNAME }}/auth-service:latest
+
+      - name: Build & Push productservice
+        run: |
+          docker build -t ${{ secrets.DOCKER_USERNAME }}/productservice:latest ./productservice
+          docker push ${{ secrets.DOCKER_USERNAME }}/productservice:latest
+
+      - name: Build & Push cartservice
+        run: |
+          docker build -t ${{ secrets.DOCKER_USERNAME }}/cartservice:latest ./cartservice
+          docker push ${{ secrets.DOCKER_USERNAME }}/cartservice:latest
+
+      - name: Build & Push orderservice
+        run: |
+          docker build -t ${{ secrets.DOCKER_USERNAME }}/orderservice:latest ./orderservice
+          docker push ${{ secrets.DOCKER_USERNAME }}/orderservice:latest
+
+      - name: Build & Push paymentservice
+        run: |
+          docker build -t ${{ secrets.DOCKER_USERNAME }}/paymentservice:latest ./paymentservice
+          docker push ${{ secrets.DOCKER_USERNAME }}/paymentservice:latest
+
+      # --------------------------
+      # Build & Push Frontend
+      # --------------------------
+      - name: Build & Push shopsphere-frontend
+        run: |
+          docker build -t ${{ secrets.DOCKER_USERNAME }}/shopsphere-frontend:latest ./shopsphere-frontend
+          docker push ${{ secrets.DOCKER_USERNAME }}/shopsphere-frontend:latest
