@@ -1,0 +1,23 @@
+server:
+  port: 8083
+
+spring:
+  application:
+    name: USER-SERVICE
+
+  datasource:
+    url: jdbc:postgresql://postgres:5432/user_db
+    username: postgres
+    password: Bunny@120
+
+  jpa:
+    hibernate:
+      ddl-auto: update
+    show-sql: true
+    properties:
+      hibernate:
+        format_sql: true
+eureka:
+  client:
+    service-url:
+      defaultZone: http://discoveryserver:8761/eureka/

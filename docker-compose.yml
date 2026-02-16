@@ -1,29 +1,193 @@
 version: "3.8"
 
 services:
+
+  # ---------------- POSTGRES ----------------
   postgres:
     image: postgres:15
     container_name: shopsphere-postgres
     ports:
       - "5432:5432"
     environment:
-      POSTGRES_DB: auth_db
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: Bunny@120
     volumes:
       - pgdata:/var/lib/postgresql/data
+      - ./postgres-init:/docker-entrypoint-initdb.d
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
 
+  # ---------------- EUREKA SERVER ----------------
+  discoveryserver:
+    build:
+      context: ./discoveryserver
+      dockerfile: Dockerfile
+    container_name: discoveryserver
+    ports:
+      - "8761:8761"
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://localhost:8761"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  # ---------------- AUTH SERVICE ----------------
   auth-service:
-    image: shopsphere/auth-service:1.0
+    build:
+      context: ./auth-service
     container_name: auth-service
     ports:
-      - "8082:8081"
+      - "8082:8082"
     depends_on:
-      - postgres
+      postgres:
+        condition: service_healthy
+      discoveryserver:
+        condition: service_healthy
     environment:
       SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/auth_db
       SPRING_DATASOURCE_USERNAME: postgres
       SPRING_DATASOURCE_PASSWORD: Bunny@120
+      SPRING_JPA_HIBERNATE_DDL_AUTO: update
+      EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://discoveryserver:8761/eureka/
+      EUREKA_INSTANCE_PREFER_IP_ADDRESS: true
+    restart: unless-stopped
+
+  # ---------------- USER SERVICE ----------------
+  userservice:
+    build:
+      context: ./userservice
+    container_name: userservice
+    ports:
+      - "8083:8083"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      discoveryserver:
+        condition: service_healthy
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/user_db
+      SPRING_DATASOURCE_USERNAME: postgres
+      SPRING_DATASOURCE_PASSWORD: Bunny@120
+      SPRING_JPA_HIBERNATE_DDL_AUTO: update
+      EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://discoveryserver:8761/eureka/
+      EUREKA_INSTANCE_PREFER_IP_ADDRESS: true
+    restart: unless-stopped
+
+  # ---------------- PRODUCT SERVICE ----------------
+  productservice:
+    build:
+      context: ./productservice
+    container_name: productservice
+    ports:
+      - "8084:8084"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      discoveryserver:
+        condition: service_healthy
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/product_db
+      SPRING_DATASOURCE_USERNAME: postgres
+      SPRING_DATASOURCE_PASSWORD: Bunny@120
+      SPRING_JPA_HIBERNATE_DDL_AUTO: update
+      EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://discoveryserver:8761/eureka/
+      EUREKA_INSTANCE_PREFER_IP_ADDRESS: true
+    restart: unless-stopped
+
+  # ---------------- CART SERVICE ----------------
+  cartservice:
+    build:
+      context: ./cartservice
+    container_name: cartservice
+    ports:
+      - "8085:8085"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      discoveryserver:
+        condition: service_healthy
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/cart_db
+      SPRING_DATASOURCE_USERNAME: postgres
+      SPRING_DATASOURCE_PASSWORD: Bunny@120
+      SPRING_JPA_HIBERNATE_DDL_AUTO: update
+      EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://discoveryserver:8761/eureka/
+      EUREKA_INSTANCE_PREFER_IP_ADDRESS: true
+    restart: unless-stopped
+
+  # ---------------- ORDER SERVICE ----------------
+  orderservice:
+    build:
+      context: ./orderservice
+    container_name: orderservice
+    ports:
+      - "8086:8086"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      discoveryserver:
+        condition: service_healthy
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/order_db
+      SPRING_DATASOURCE_USERNAME: postgres
+      SPRING_DATASOURCE_PASSWORD: Bunny@120
+      SPRING_JPA_HIBERNATE_DDL_AUTO: update
+      EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://discoveryserver:8761/eureka/
+      EUREKA_INSTANCE_PREFER_IP_ADDRESS: true
+    restart: unless-stopped
+
+  # ---------------- PAYMENT SERVICE ----------------
+  paymentservice:
+    build:
+      context: ./paymentservice
+    container_name: paymentservice
+    ports:
+      - "8087:8087"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      discoveryserver:
+        condition: service_healthy
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/payment_db
+      SPRING_DATASOURCE_USERNAME: postgres
+      SPRING_DATASOURCE_PASSWORD: Bunny@120
+      SPRING_JPA_HIBERNATE_DDL_AUTO: update
+      EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://discoveryserver:8761/eureka/
+      EUREKA_INSTANCE_PREFER_IP_ADDRESS: true
+    restart: unless-stopped
+
+  # ---------------- API GATEWAY ----------------
+  apigateway:
+    build:
+      context: ./apigateway
+    container_name: apigateway
+    ports:
+      - "8080:8080"
+    depends_on:
+      discoveryserver:
+        condition: service_healthy
+    environment:
+      EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://discoveryserver:8761/eureka/
+      SPRING_CLOUD_DISCOVERY_ENABLED: true
+      EUREKA_INSTANCE_PREFER_IP_ADDRESS: true
+    restart: unless-stopped
+
+  # ---------------- FRONTEND ----------------
+  frontend:
+    build:
+      context: ./shopsphere-frontend
+    container_name: frontend
+    ports:
+      - "3000:80"
+    depends_on:
+      - apigateway
+    restart: unless-stopped
 
 volumes:
   pgdata:

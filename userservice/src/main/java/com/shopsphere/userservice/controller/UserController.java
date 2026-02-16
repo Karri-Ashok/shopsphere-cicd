@@ -1,14 +1,23 @@
 package com.shopsphere.userservice.controller;
 
-import org.springframework.security.core.Authentication;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.RestController;
+import com.shopsphere.userservice.entity.User;
+import com.shopsphere.userservice.service.UserService;
+import org.springframework.web.bind.annotation.*;
 
 @RestController
+@RequestMapping("/api/users")
 public class UserController {
 
-    @GetMapping("/api/user/profile")
-    public String profile(Authentication authentication) {
-        return "Hello " + authentication.getName() + ", JWT is valid!";
+    private final UserService userService;
+
+    public UserController(UserService userService) {
+        this.userService = userService;
+    }
+
+    @GetMapping("/profile")
+    public User getProfile(
+            @RequestHeader("X-USER-EMAIL") String email) {
+
+        return userService.getUserByEmail(email);
     }
 }

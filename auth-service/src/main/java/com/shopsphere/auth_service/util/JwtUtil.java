@@ -12,8 +12,12 @@ import java.util.Date;
 @Component
 public class JwtUtil {
 
-    private static final Key key = Keys.secretKeyFor(SignatureAlgorithm.HS256);
-    private static final long EXPIRATION_TIME = 1000 * 60 * 60; // 1 hour
+    private static final String SECRET =
+            "shopsphere-auth-secret-key-12345678901234567890";
+
+    private static final long EXPIRATION_TIME = 1000 * 60 * 60;
+
+    private final Key key = Keys.hmacShaKeyFor(SECRET.getBytes());
 
     public String generateToken(String email, String role) {
         return Jwts.builder()
@@ -21,7 +25,7 @@ public class JwtUtil {
                 .claim("role", role)
                 .setIssuedAt(new Date())
                 .setExpiration(new Date(System.currentTimeMillis() + EXPIRATION_TIME))
-                .signWith(key)
+                .signWith(key, SignatureAlgorithm.HS256)
                 .compact();
     }
 
@@ -31,9 +35,5 @@ public class JwtUtil {
                 .build()
                 .parseClaimsJws(token)
                 .getBody();
-    }
-
-    public String extractEmail(String token) {
-        return extractClaims(token).getSubject();
     }
 }
