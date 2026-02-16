@@ -18,5 +18,27 @@ jobs:
           java-version: '17'
           distribution: 'temurin'
 
-      - name: Build with Maven
-        run: mvn clean install -DskipTests
+      - name: Build Discovery Server
+        run: |
+          cd discoveryserver
+          mvn clean install -DskipTests
+
+      - name: Build API Gateway
+        run: |
+          cd apigateway
+          mvn clean install -DskipTests
+
+      - name: Build User Service
+        run: |
+          cd userservice
+          mvn clean install -DskipTests
+
+      - name: Build Order Service
+        run: |
+          cd orderservice
+          mvn clean install -DskipTests
+
+      - name: Build Product Service
+        run: |
+          cd productservice
+          mvn clean install -DskipTests
